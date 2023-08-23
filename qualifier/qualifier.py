@@ -63,6 +63,7 @@ def rearrange_tiles(
     print("\n", "\n", "Rearranging image...")
     with Image.open(fp=image_path) as img:
         img_array: np.ndarray = np.asarray(img)
+        print("Shape -> ", img_array.shape)
         # img = img.convert("RGBA")
 
     print("Image Size -> ", img.size)
@@ -74,28 +75,45 @@ def rearrange_tiles(
     # --------------
     print("Shape -> ", img_array.shape)
     # --------------
-    img_reshaped = np.reshape(
-        a=img_array, newshape=(len(ordering), tile_size[0], tile_size[1], 4)
-    )
-    print("New Shape -> ", img_reshaped.shape)
+
+    tile_count = len(ordering)
+    tiles = np.ndarray(shape=(tile_count, tile_size[0], tile_size[1], 4))
+    y_pointer = int(tile_count / 2)
+    for i in range(int(tile_count / 2)):
+        x_loc = i * tile_size[0]
+        y_loc = i * tile_size[1]
+        tiles[i] = img_array[
+            : img_array[x_loc : x_loc + tile_size[0]].shape[0],
+            : tile_size[0],
+        ]
+        tiles[y_pointer] = img_array[
+            : img_array[y_loc : y_loc + tile_size[1]].shape[0],
+            : tile_size[0],
+        ]
+        y_pointer += 1
+
+    print("New Shape -> ", tiles.shape)
     # --------------
     try:
         # out_array = [(img_array[ordering[i]]) for i in ordering]
-        out_array = np.take(a=img_reshaped, indices=ordering, axis=0)
-        out_array = np.reshape(a=out_array, newshape=img_array.shape)
+        out_array = np.take(a=tiles, indices=ordering, axis=0).reshape(img_array.shape)
+        # out_array = np.reshape(out_array, img_array.shape)
         print("Out Shape -> ", out_array.shape)
     except IndexError:
         raise IndexError("The tile size or ordering are not valid for the given image")
     # -------------
     # save image
-
-    new_img: Image = Image.fromarray(obj=out_array, mode="RGB")
+    new_img: Image = Image.fromarray(obj=out_array, mode="RGBA")
     new_img.save(out_path)
-
 
 
 if __name__ == "__main__":
     image_path: str = "test.png"
     tile_size: tuple[int, int] = (256, 256)
-    ordering: list[int] = [1,0,2,3]
-    rearrange_tiles(image_path=image_path, tile_size=tile_size, ordering=ordering, out_path="out_test.png")
+    ordering: list[int] = [1, 0, 2, 3]
+    rearrange_tiles(
+        image_path=image_path,
+        tile_size=tile_size,
+        ordering=ordering,
+        out_path="out_test.png",
+    )
